@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>日本代購許願池 🇯🇵</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Setup Warning Banner (shown only if config.js is not filled yet) -->
+    <div class="setup-banner hidden" id="setupBanner">
+      <strong>⚠️ 尚未設定 Supabase 連線資訊</strong>：請打開 <code>config.js</code> 填入你的 <code>SUPABASE_URL</code> 與 <code>SUPABASE_ANON_KEY</code>，並於 Supabase SQL Editor 執行 <code>supabase-setup.sql</code>。
+    </div>
+
+    <!-- Top Header / Trip Banner -->
+    <header class="hero-card">
+      <div class="hero-top">
+        <div>
+          <div class="trip-badges">
+            <span class="badge-pill" id="tripDatesBadge">即將出發</span>
+            <span class="badge-pill traveler-pill">✈️ 代購小幫手：<strong id="tripTraveler">小琳</strong></span>
+            <span class="badge-pill rate-pill">💴 匯率 <strong id="tripRate">0.215</strong></span>
+          </div>
+          <h1 id="tripTitle">東京代購許願池 🇯🇵</h1>
+          <p class="hero-note" id="tripNote">看到想買的直接上傳照片＋寫名字，想要的也可以在別人底下按 +1！</p>
+        </div>
+        <div class="hero-actions">
+          <button class="btn btn-ghost" id="editTripBtn" title="編輯旅程資訊">⚙️ 旅程設定</button>
+          <button class="btn btn-secondary" id="summaryBtn">📋 統計清單</button>
+          <button class="btn btn-primary" id="openAddBtn">＋ 我要許願</button>
+        </div>
+      </div>
+
+      <!-- Current User Identity + Stats -->
+      <div class="hero-bottom">
+        <div class="identity-bar">
+          <span class="identity-label">🙋 我的暱稱：</span>
+          <input type="text" id="myNicknameInput" placeholder="輸入你的名字 (例如: 小明)" maxlength="20" />
+          <span class="identity-hint">設定後，發文與按 +1 會自動帶入</span>
+        </div>
+        <div class="stats-row" id="statsRow">
+          <div class="stat-chip"><span class="stat-num" id="statTotalItems">0</span><span class="stat-label">項商品</span></div>
+          <div class="stat-chip"><span class="stat-num" id="statTotalUnits">0</span><span class="stat-label">總件數 (含+1)</span></div>
+          <div class="stat-chip stat-bought"><span class="stat-num" id="statBoughtItems">0</span><span class="stat-label">已買到</span></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Filter & Search Bar -->
+    <section class="toolbar">
+      <div class="filter-pills" id="statusFilters">
+        <button class="filter-btn active" data-status="all">全部</button>
+        <button class="filter-btn" data-status="pending">🛒 待購買</button>
+        <button class="filter-btn" data-status="bought">✅ 已買到</button>
+        <button class="filter-btn" data-status="unavailable">❌ 缺貨</button>
+      </div>
+
+      <div class="toolbar-right">
+        <select id="personFilter" class="select-input" aria-label="依許願人篩選">
+          <option value="all">所有人</option>
+        </select>
+        <select id="categoryFilter" class="select-input" aria-label="依分類篩選">
+          <option value="all">全部分類</option>
+          <option value="藥妝">💊 藥妝</option>
+          <option value="零食伴手禮">🍫 零食伴手禮</option>
+          <option value="服飾雜貨">👕 服飾雜貨</option>
+          <option value="動漫周邊">🧸 動漫周邊</option>
+          <option value="電器">🔌 電器</option>
+          <option value="其他">📦 其他</option>
+        </select>
+        <div class="search-box">
+          <input type="search" id="searchInput" placeholder="搜尋商品、店家、備註..." />
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Wishlist Grid -->
+    <main class="items-grid" id="itemsGrid"></main>
+
+    <!-- Empty State -->
+    <div class="empty-state hidden" id="emptyState">
+      <div class="empty-icon">🛍️</div>
+      <h3>目前沒有符合條件的代購項目</h3>
+      <p>點擊右上角「＋ 我要許願」上傳照片，大家一起來許願吧！</p>
+    </div>
+  </div>
+
+  <!-- Add Item Modal -->
+  <div class="modal-backdrop hidden" id="addModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>✨ 新增代購許願</h2>
+        <button class="icon-close" data-close="addModal">✕</button>
+      </div>
+      <form id="addItemForm" class="modal-form">
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="photoInput" accept="image/*" hidden />
+          <div class="upload-placeholder" id="uploadPlaceholder">
+            <span class="upload-emoji">📷</span>
+            <strong>點擊或拖曳上傳商品照片</strong>
+            <small>支援手機拍照 / 截圖（自動壓縮）</small>
+          </div>
+          <div class="upload-preview hidden" id="uploadPreviewWrap">
+            <img id="uploadPreviewImg" alt="預覽圖片" />
+            <button type="button" class="remove-photo-btn" id="removePhotoBtn">移除照片</button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="itemTitle">商品名稱 <span class="req">*</span></label>
+            <input type="text" id="itemTitle" required placeholder="例如：合利他命 EX Plus 270錠" />
+          </div>
+          <div class="form-group flex-1">
+            <label for="itemRequester">誰要買 <span class="req">*</span></label>
+            <input type="text" id="itemRequester" required placeholder="你的名字" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="itemCategory">分類</label>
+            <select id="itemCategory">
+              <option value="藥妝">💊 藥妝</option>
+              <option value="零食伴手禮">🍫 零食伴手禮</option>
+              <option value="服飾雜貨">👕 服飾雜貨</option>
+              <option value="動漫周邊">🧸 動漫周邊</option>
+              <option value="電器">🔌 電器</option>
+              <option value="其他">📦 其他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="itemQty">數量</label>
+            <input type="number" id="itemQty" min="1" value="1" />
+          </div>
+          <div class="form-group">
+            <label for="itemPrice">預估日幣 (¥)</label>
+            <input type="number" id="itemPrice" min="0" placeholder="選填" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="itemStore">購買地點 / 店家提示</label>
+          <input type="text" id="itemStore" placeholder="例如：唐吉訶德、松本清、7-11、機場免稅" />
+        </div>
+
+        <div class="form-group">
+          <label for="itemNote">規格 / 備註</label>
+          <textarea id="itemNote" rows="2" placeholder="顏色、尺寸、口味、預算上限等說明..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close="addModal">取消</button>
+          <button type="submit" class="btn btn-primary" id="submitItemBtn">送出許願 🚀</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Summary / Settlement Modal -->
+  <div class="modal-backdrop hidden" id="summaryModal">
+    <div class="modal-card modal-wide">
+      <div class="modal-header">
+        <h2>📋 代購統計清單（依許願人整理）</h2>
+        <button class="icon-close" data-close="summaryModal">✕</button>
+      </div>
+      <div class="summary-body" id="summaryBody"></div>
+    </div>
+  </div>
+
+  <!-- Trip Settings Modal -->
+  <div class="modal-backdrop hidden" id="tripModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>⚙️ 旅程設定</h2>
+        <button class="icon-close" data-close="tripModal">✕</button>
+      </div>
+      <form id="tripForm" class="modal-form">
+        <div class="form-group">
+          <label for="editTripTitle">活動標題</label>
+          <input type="text" id="editTripTitle" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editTripTraveler">去日本的朋友</label>
+            <input type="text" id="editTripTraveler" required />
+          </div>
+          <div class="form-group">
+            <label for="editTripRate">參考匯率 (1 JPY = ? TWD)</label>
+            <input type="number" id="editTripRate" step="0.001" min="0.01" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="editTripDates">日期 / 狀態標籤</label>
+          <input type="text" id="editTripDates" />
+        </div>
+        <div class="form-group">
+          <label for="editTripNote">公告備註</label>
+          <textarea id="editTripNote" rows="2"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close="tripModal">取消</button>
+          <button type="submit" class="btn btn-primary">儲存設定</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Image Lightbox -->
+  <div class="lightbox hidden" id="lightbox">
+    <img id="lightboxImg" alt="放大檢視" />
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
