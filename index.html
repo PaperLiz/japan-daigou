@@ -161,6 +161,72 @@
     </div>
   </div>
 
+  <!-- Edit Item Modal -->
+  <div class="modal-backdrop hidden" id="editModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>✏️ 編輯代購項目 / 填寫日幣</h2>
+        <button class="icon-close" data-close="editModal">✕</button>
+      </div>
+      <form id="editItemForm" class="modal-form">
+        <input type="hidden" id="editItemId" />
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="editItemPrice">實際 / 預估日幣 (¥)</label>
+            <input type="number" id="editItemPrice" min="0" placeholder="輸入購買到的日幣金額" />
+          </div>
+          <div class="form-group flex-1">
+            <label for="editItemStatus">購買狀態</label>
+            <select id="editItemStatus">
+              <option value="pending">🛒 待購買</option>
+              <option value="bought">✅ 已買到</option>
+              <option value="unavailable">❌ 缺貨</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="editItemTitle">商品名稱 <span class="req">*</span></label>
+            <input type="text" id="editItemTitle" required />
+          </div>
+          <div class="form-group flex-1">
+            <label for="editItemQty">發起人數量</label>
+            <input type="number" id="editItemQty" min="1" value="1" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editItemCategory">分類</label>
+            <select id="editItemCategory">
+              <option value="藥妝">💊 藥妝</option>
+              <option value="零食伴手禮">🍫 零食伴手禮</option>
+              <option value="服飾雜貨">👕 服飾雜貨</option>
+              <option value="動漫周邊">🧸 動漫周邊</option>
+              <option value="電器">🔌 電器</option>
+              <option value="其他">📦 其他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="editItemStore">購買地點 / 店家</label>
+            <input type="text" id="editItemStore" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="editItemNote">規格 / 備註</label>
+          <textarea id="editItemNote" rows="2"></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close="editModal">取消</button>
+          <button type="submit" class="btn btn-primary" id="saveEditBtn">儲存修改 💾</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Summary / Settlement Modal -->
   <div class="modal-backdrop hidden" id="summaryModal">
     <div class="modal-card modal-wide">

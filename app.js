@@ -184,16 +184,21 @@ function renderItems() {
         ? `¥${item.price_jpy.toLocaleString()} (約 NT$${Math.round(item.price_jpy * rate).toLocaleString()})`
         : '';
 
+      const topActionsHtml = `
+        <button class="status-badge status-${item.status}" data-action="cycle-status" data-id="${item.id}" title="點擊切換購買狀態">${STATUS_LABELS[item.status]}</button>
+        <div class="card-top-actions">
+          <button class="card-edit-btn" data-action="edit" data-id="${item.id}" title="編輯項目 / 填寫日幣">✏️</button>
+          <button class="card-delete-btn" data-action="delete" data-id="${item.id}" title="刪除項目">✕</button>
+        </div>`;
+
       const photoHtml = item.image_url
         ? `<div class="card-photo-wrap" data-zoom="${escapeHtml(item.image_url)}">
              <img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.title)}" loading="lazy" />
-             <button class="status-badge status-${item.status}" data-action="cycle-status" data-id="${item.id}" title="點擊切換購買狀態">${STATUS_LABELS[item.status]}</button>
-             <button class="card-delete-btn" data-action="delete" data-id="${item.id}" title="刪除項目">✕</button>
+             ${topActionsHtml}
            </div>`
         : `<div class="card-photo-wrap no-photo">
              <span>📷 尚未上傳照片</span>
-             <button class="status-badge status-${item.status}" data-action="cycle-status" data-id="${item.id}" title="點擊切換購買狀態">${STATUS_LABELS[item.status]}</button>
-             <button class="card-delete-btn" data-action="delete" data-id="${item.id}" title="刪除項目">✕</button>
+             ${topActionsHtml}
            </div>`;
 
       const plusChipsHtml = plusOnes
@@ -552,6 +557,22 @@ $('itemsGrid').addEventListener('click', async (e) => {
       return;
     }
 
+    if (action === 'edit') {
+      const item = state.items.find((i) => i.id === id);
+      if (!item) return;
+      $('editItemId').value = item.id;
+      $('editItemPrice').value = item.price_jpy ?? '';
+      $('editItemStatus').value = item.status || 'pending';
+      $('editItemTitle').value = item.title || '';
+      $('editItemQty').value = item.quantity || 1;
+      $('editItemCategory').value = item.category || '其他';
+      $('editItemStore').value = item.store || '';
+      $('editItemNote').value = item.note || '';
+      $('editModal').classList.remove('hidden');
+      setTimeout(() => $('editItemPrice').focus(), 50);
+      return;
+    }
+
     if (action === 'delete') {
       if (!window.confirm('確定要刪除這個代購項目嗎？')) return;
       const { error } = await sb.from('daigou_items').delete().eq('id', id);
@@ -587,6 +608,37 @@ $('itemsGrid').addEventListener('submit', async (e) => {
   if (error) return showToast(error.message);
   input.value = '';
   await loadData();
+});
+
+$('editItemForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!sb) return;
+  const btn = $('saveEditBtn');
+  btn.disabled = true;
+  try {
+    const id = $('editItemId').value;
+    const priceVal = $('editItemPrice').value;
+    const { error } = await sb
+      .from('daigou_items')
+      .update({
+        price_jpy: priceVal !== '' ? Math.max(0, Number(priceVal)) : null,
+        status: $('editItemStatus').value,
+        title: $('editItemTitle').value.trim(),
+        quantity: Math.max(1, Number($('editItemQty').value) || 1),
+        category: $('editItemCategory').value,
+        store: $('editItemStore').value.trim(),
+        note: $('editItemNote').value.trim(),
+      })
+      .eq('id', id);
+    if (error) throw error;
+    $('editModal').classList.add('hidden');
+    showToast('已更新項目！');
+    await loadData();
+  } catch (err) {
+    showToast(err.message || '更新失敗');
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 $('lightbox').addEventListener('click', () => {
